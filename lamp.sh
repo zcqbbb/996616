@@ -3,7 +3,6 @@
 read -p "请输入新的数据库密码：" -s password
 
 
-
 echo '正在配置YUM源...'
 
 \cp Software/CentOS7-Base-163.repo /etc/yum.repos.d/
@@ -172,9 +171,7 @@ echo "数据库密码已设置为$password"
 service php-fpm start
 chkconfig --add php-fpm
 
-＃apache配置
-
-#!/bin/bash
+# apache配置
 
 sed -i '/proxy_module/s/#//g' /etc/httpd24/httpd.conf
 sed -i '/proxy_fcgi_module/s/#//g' /etc/httpd24/httpd.conf
