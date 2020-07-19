@@ -172,3 +172,46 @@ echo "数据库密码已设置为$password"
 service php-fpm start
 chkconfig --add php-fpm
 
+＃apache配置
+
+#!/bin/bash
+
+sed -i '/proxy_module/s/#//g' /etc/httpd24/httpd.conf
+sed -i '/proxy_fcgi_module/s/#//g' /etc/httpd24/httpd.conf
+
+cat > /usr/local/apache/htdocs/index.php <<EOF
+<?php
+   phpinfo();
+?>
+EOF
+
+chown -R apache.apache /usr/local/apache/htdocs/
+
+sed -i '/httpd-vhosts.conf/s/^#// ' /etc/httpd24/httpd.conf
+cat > /etc/httpd24/extra/httpd-vhosts.conf <<EOF
+<VirtualHost *:80>
+    DocumentRoot "/usr/local/apache/htdocs"
+    ServerName www.example.com
+    ProxyRequests Off
+    ProxyPassMatch ^/(.*\.php)$ fcgi://127.0.0.1:9000/usr/local/apache/htdocs/\$1
+    <Directory "/usr/local/apache/htdocs">
+        Options none
+        AllowOverride none
+        Require all granted
+    </Directory>
+</VirtualHost>
+EOF
+
+php_st=$(grep 'httpd-php' /etc/httpd24/httpd.conf |wc -l)
+
+if [ $php_st -eq 0 ];then
+    sed -i '398a\    AddType application/x-httpd-php-source .phps' /etc/httpd24/httpd.conf
+    sed -i '398a\    AddType application/x-httpd-php .php' /etc/httpd24/httpd.conf
+fi
+index_php=$(grep 'index.php' /etc/httpd24/httpd.conf |wc -l)
+if [ $index_php -eq 0 ];then
+    sed -i '/    DirectoryIndex/s/index.html/index.php index.html/g' /etc/httpd24/httpd.conf
+fi
+
+/usr/local/apache/bin/apachectl stop && sleep 1
+/usr/local/apache/bin/apachectl start
